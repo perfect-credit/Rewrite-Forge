@@ -2,6 +2,7 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import rewriteRouter from './routes/rewrite';
 import healthRouter from './routes/health';
 import asyncQueueRouter from './routes/asyncQueue';
+import streamingRouter from './routes/streaming';
 // import openaiRoutes from "./routes/openaiRoutes";
 // import anthropicRoutes from './routes/anthropicRoutes';
 import dotenv from "dotenv";
@@ -21,6 +22,8 @@ app.get('/', (req: Request, res: Response) => {
     endpoints: {
       synchronous: '/v1/rewrite',
       asynchronous: '/v1/rewrite/submit',
+      streaming: '/v1/rewrite/stream', //	Multiple (OpenAI, Anthropic, Local)
+      streamingMock: '/v1/rewrite/stream/mock', //Local Mock Only
       health: '/health',
       queueStats: '/v1/rewrite/queue/stats'
     }
@@ -31,6 +34,7 @@ app.get('/', (req: Request, res: Response) => {
 app.use('/', rewriteRouter);
 app.use('/', healthRouter);
 app.use('/', asyncQueueRouter);
+app.use('/', streamingRouter);
 // app.use("/", openaiRoutes);
 // app.use("/", anthropicRoutes);
 // 404 handler
@@ -53,6 +57,8 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('  POST /v1/rewrite/submit - Submit async job');
     console.log('  GET /v1/rewrite/result/:jobId - Get job result');
     console.log('  GET /v1/rewrite/queue/stats - Queue statistics');
+    console.log('  POST /v1/rewrite/stream - Streaming text rewriting (SSE)');
+    console.log('  POST /v1/rewrite/stream/mock - Mock streaming (SSE)');
     console.log('  GET /health - Health check');
   });
 }
