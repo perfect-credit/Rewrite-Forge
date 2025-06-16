@@ -6,11 +6,22 @@ const cache = new LRUCache<string, string>({
   ttl: 1000 * 300,     // TTL in milliseconds (5 minutes)
 });
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const apiKey = process.env.ANTHROPIC_API_KEY;
+if (!apiKey) {
+  console.warn("Missing ANTHROPIC_API_KEY in environment variables. Anthropic service will not be available.");
+}
+
+const anthropic = apiKey ? new Anthropic({ apiKey }) : null;
+
+if (apiKey) {
+  console.log("Anthropic key loaded:", apiKey.slice(0, 8) + "...");
+}
 
 export async function getAnthropicResponse(text: string, style: string): Promise<string> {
+  if (!anthropic) {
+    throw new Error("Anthropic service is not configured. Please set ANTHROPIC_API_KEY in your environment variables.");
+  }
+
   const cacheKey = `${text}:${style}`;
 
   const cached = cache.get(cacheKey);
@@ -34,7 +45,7 @@ export async function anthropicResponse(text: string, style: string): Promise<st
       throw new Error("Invalid prompt: must be a string.");
     }
 
-    const response = await anthropic.messages.create({
+    const response = await anthropic!.messages.create({
       model: "claude-3-opus-20240229",
       max_tokens: 1024,
       messages: [
@@ -53,6 +64,25 @@ export async function anthropicResponse(text: string, style: string): Promise<st
     return textBlock?.text.trim() ?? "No text response from Claude.";
   } catch (error: any) {
     console.error("Anthropic error:", error);
-    throw new Error("Failed to get Claude response.");
+    
+    // Enhanced error handling for different types of failures
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
+      throw new Error("Network error: Unable to connect to Anthropic API. Please check your internet connection.");
+    }
+    
+    if (error.status === 401) {
+      throw new Error("Authentication error: Invalid Anthropic API key. Please check your ANTHROPIC_API_KEY.");
+    }
+    
+    if (error.status === 429) {
+      throw new Error("Rate limit error: Too many requests to Anthropic API. Please try again later.");
+    }
+    
+    if (error.status === 500) {
+      throw new Error("Anthropic service error: Internal server error. Please try again later.");
+    }
+    
+    // Generic error with more context
+    throw new Error(`Anthropic API error: ${error.message || 'Unknown error occurred'}`);
   }
 }

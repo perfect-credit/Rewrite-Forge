@@ -7,7 +7,6 @@ const cache = new LRUCache<string, string>({
   ttl: 1000 * 300,     // TTL in milliseconds (5 minutes)
 });
 
-
 // Simple in-memory cache
 
 export async function getLocalmocResponse(text: string, style: string): Promise<string> {
