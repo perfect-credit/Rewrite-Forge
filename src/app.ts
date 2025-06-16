@@ -3,6 +3,8 @@ import rewriteRouter from './routes/rewrite';
 import healthRouter from './routes/health';
 import asyncQueueRouter from './routes/asyncQueue';
 import streamingRouter from './routes/streaming';
+import observabilityRouter from './routes/observability';
+import { requestLogger } from './services/observabilityService';
 // import openaiRoutes from "./routes/openaiRoutes";
 // import anthropicRoutes from './routes/anthropicRoutes';
 import dotenv from "dotenv";
@@ -15,6 +17,9 @@ const port = process.env.PORT || 3000;
 // Middleware
 app.use(express.json({ limit: '5kb' })); // Accept body size < 5000 chars
 
+// Request logging middleware (add before routes)
+app.use(requestLogger);
+
 // Root route
 app.get('/', (req: Request, res: Response) => {
   res.json({ 
@@ -25,7 +30,13 @@ app.get('/', (req: Request, res: Response) => {
       streaming: '/v1/rewrite/stream', //	Multiple (OpenAI, Anthropic, Local)
       streamingMock: '/v1/rewrite/stream/mock', //Local Mock Only
       health: '/health',
-      queueStats: '/v1/rewrite/queue/stats'
+      queueStats: '/v1/rewrite/queue/stats',
+      metrics: {
+        cache: '/metrics/cache',
+        requests: '/metrics/requests',
+        overview: '/metrics/overview',
+        reset: '/metrics/reset'
+      }
     }
   });
 });
@@ -35,6 +46,7 @@ app.use('/', rewriteRouter);
 app.use('/', healthRouter);
 app.use('/', asyncQueueRouter);
 app.use('/', streamingRouter);
+app.use('/', observabilityRouter);
 // app.use("/", openaiRoutes);
 // app.use("/", anthropicRoutes);
 // 404 handler
@@ -60,6 +72,10 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('  POST /v1/rewrite/stream - Streaming text rewriting (SSE)');
     console.log('  POST /v1/rewrite/stream/mock - Mock streaming (SSE)');
     console.log('  GET /health - Health check');
+    console.log('  GET /metrics/cache - Cache hit/miss metrics');
+    console.log('  GET /metrics/requests - Request statistics');
+    console.log('  GET /metrics/overview - Comprehensive metrics overview');
+    console.log('  POST /metrics/reset - Reset all metrics');
   });
 }
 

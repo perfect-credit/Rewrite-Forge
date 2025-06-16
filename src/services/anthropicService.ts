@@ -1,10 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { LRUCache } from 'lru-cache';
+import { ObservableCache } from './observabilityService';
 
-const cache = new LRUCache<string, string>({
-  max: 100,            // maximum number of items to store
-  ttl: 1000 * 300,     // TTL in milliseconds (5 minutes)
-});
+// Use the observable cache instead of LRU cache
+const cache = new ObservableCache('anthropic');
 
 const apiKey = process.env.ANTHROPIC_API_KEY;
 if (!apiKey) {
@@ -26,11 +24,9 @@ export async function getAnthropicResponse(text: string, style: string): Promise
 
   const cached = cache.get(cacheKey);
   if (cached) {
-    console.log('Cache hit for:', cacheKey);
     return cached;
   }
 
-  console.log('Cache miss for:', cacheKey);
   const rewritten = await anthropicResponse(text, style);
   cache.set(cacheKey, rewritten);
   return rewritten;

@@ -1,11 +1,8 @@
 import { config } from '../config';
+import { ObservableCache } from './observabilityService';
 
-import { LRUCache } from 'lru-cache';
-
-const cache = new LRUCache<string, string>({
-  max: 100,            // maximum number of items to store
-  ttl: 1000 * 300,     // TTL in milliseconds (5 minutes)
-});
+// Use the observable cache instead of LRU cache
+const cache = new ObservableCache('localmoc');
 
 // Simple in-memory cache
 
