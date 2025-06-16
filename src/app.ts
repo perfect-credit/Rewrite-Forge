@@ -8,6 +8,7 @@ import { requestLogger } from './services/observabilityService';
 // import openaiRoutes from "./routes/openaiRoutes";
 // import anthropicRoutes from './routes/anthropicRoutes';
 import dotenv from "dotenv";
+import path from 'path';
 
 dotenv.config();
 
@@ -19,6 +20,9 @@ app.use(express.json({ limit: '5kb' })); // Accept body size < 5000 chars
 
 // Request logging middleware (add before routes)
 app.use(requestLogger);
+
+// Serve static files from public directory
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Root route
 app.get('/', (req: Request, res: Response) => {
@@ -36,6 +40,9 @@ app.get('/', (req: Request, res: Response) => {
         requests: '/metrics/requests',
         overview: '/metrics/overview',
         reset: '/metrics/reset'
+      },
+      ui: {
+        streamingTest: '/public/streaming-test.html'
       }
     }
   });
@@ -76,6 +83,7 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('  GET /metrics/requests - Request statistics');
     console.log('  GET /metrics/overview - Comprehensive metrics overview');
     console.log('  POST /metrics/reset - Reset all metrics');
+    console.log('  GET /public/streaming-test.html - Streaming test UI');
   });
 }
 
