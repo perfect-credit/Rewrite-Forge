@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RewriteForge Streaming Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            min-height: 200px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .event {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        }
+        .event.metadata {
+            background: #e3f2fd;
+            border-left-color: #2196f3;
+        }
+        .event.progress {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+        }
+        .event.content {
+            background: #f1f8e9;
+            border-left-color: #4caf50;
+        }
+        .event.complete {
+            background: #e8f5e8;
+            border-left-color: #4caf50;
+        }
+        .event.error {
+            background: #ffebee;
+            border-left-color: #f44336;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            transition: width 0.3s ease;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 RewriteForge Streaming Test</h1>
+        
+        <form id="streamingForm">
+            <div class="form-group">
+                <label for="text">Text to Rewrite:</label>
+                <textarea id="text" name="text" placeholder="Enter text to rewrite..." required>Hello world, this is a test of the streaming functionality.</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="llm">LLM Provider:</label>
+                <select id="llm" name="llm">
+                    <option value="localmoc">Local Mock</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="anthropic">Anthropic</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="style">Style:</label>
+                <select id="style" name="style">
+                    <option value="formal">Formal</option>
+                    <option value="pirate">Pirate</option>
+                    <option value="haiku">Haiku</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="granularity">Granularity:</label>
+                <select id="granularity" name="granularity">
+                    <option value="word">Word</option>
+                    <option value="character">Character</option>
+                    <option value="sentence">Sentence</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="delay">Delay (ms):</label>
+                <input type="number" id="delay" name="delay" value="100" min="0" max="5000">
+            </div>
+            
+            <div class="controls">
+                <button type="submit" id="startBtn">Start Streaming</button>
+                <button type="button" id="stopBtn" disabled>Stop Streaming</button>
+                <button type="button" id="clearBtn">Clear Output</button>
+            </div>
+        </form>
+        
+        <div class="output" id="output">
+            <p>Streaming output will appear here...</p>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        let isStreaming = false;
+
+        const form = document.getElementById('streamingForm');
+        const output = document.getElementById('output');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        function addEvent(type, data) {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event ${type}`;
+            
+            let content = '';
+            switch (type) {
+                case 'metadata':
+                    content = `<strong>📋 Metadata:</strong><br>${JSON.stringify(data, null, 2)}`;
+                    break;
+                case 'progress':
+                    const progress = data.progress;
+                    content = `
+                        <strong>📈 Progress: ${progress}%</strong>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <small>Chunk ${data.currentChunk || 0} of ${data.totalChunks || 0}</small>
+                    `;
+                    break;
+                case 'content':
+                    content = `<strong>📝 Content:</strong> ${data.chunk}`;
+                    break;
+                case 'complete':
+                    content = `
+                        <strong>✅ Complete!</strong><br>
+                        <strong>Final Result:</strong> ${data.rewritten}<br>
+                        <strong>Total Chunks:</strong> ${data.totalChunks}
+                    `;
+                    break;
+                case 'error':
+                    content = `<strong>❌ Error:</strong> ${data.message}`;
+                    break;
+            }
+            
+            eventDiv.innerHTML = content;
+            output.appendChild(eventDiv);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            output.innerHTML = '<p>Streaming output will appear here...</p>';
+        }
+
+        function startStreaming() {
+            if (isStreaming) return;
+
+            const formData = new FormData(form);
+            const data = {
+                text: formData.get('text'),
+                llm: formData.get('llm'),
+                style: formData.get('style'),
+                granularity: formData.get('granularity'),
+                delay: parseInt(formData.get('delay')),
+                includeMetadata: true
+            };
+
+            // Use mock endpoint if localmoc is selected
+            const endpoint = data.llm === 'localmoc' ? '/v1/rewrite/stream/mock' : '/v1/rewrite/stream';
+
+            clearOutput();
+            addEvent('metadata', { message: 'Starting stream...', request: data });
+
+            // Create EventSource for SSE
+            const url = `${endpoint}?${new URLSearchParams(data).toString()}`;
+            eventSource = new EventSource(url);
+
+            eventSource.onopen = function() {
+                isStreaming = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                addEvent('metadata', { message: 'Stream connection opened' });
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addEvent(data.type, data.data);
+                    
+                    if (data.type === 'complete' || data.type === 'error') {
+                        stopStreaming();
+                    }
+                } catch (error) {
+                    addEvent('error', { message: `Parse error: ${error.message}` });
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                addEvent('error', { message: 'Stream connection error' });
+                stopStreaming();
+            };
+        }
+
+        function stopStreaming() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+            isStreaming = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            addEvent('metadata', { message: 'Stream stopped' });
+        }
+
+        // Event listeners
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            startStreaming();
+        });
+
+        stopBtn.addEventListener('click', stopStreaming);
+        clearBtn.addEventListener('click', clearOutput);
+
+        // Alternative approach using fetch for POST requests
+        async function startStreamingWithFetch() {
+            if (isStreaming) return;
+
+            const formData = new FormData(form);
+            const data = {
+                text: formData.get('text'),
+                llm: formData.get('llm'),
+                style: formData.get('style'),
+                granularity: formData.get('granularity'),
+                delay: parseInt(formData.get('delay')),
+                includeMetadata: true
+            };
+
+            const endpoint = data.llm === 'localmoc' ? '/v1/rewrite/stream/mock' : '/v1/rewrite/stream';
+
+            clearOutput();
+            addEvent('metadata', { message: 'Starting stream with fetch...', request: data });
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/event-stream',
+                        'Cache-Control': 'no-cache'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                isStreaming = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const eventData = JSON.parse(line.slice(6));
+                                addEvent(eventData.type, eventData.data);
+                                
+                                if (eventData.type === 'complete' || eventData.type === 'error') {
+                                    stopStreaming();
+                                    return;
+                                }
+                            } catch (parseError) {
+                                addEvent('error', { message: `Parse error: ${parseError.message}` });
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                addEvent('error', { message: error.message });
+                stopStreaming();
+            }
+        }
+
+        // Use fetch-based streaming instead of EventSource
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            startStreamingWithFetch();
+        });
+    </script>
+</body>
+</html> 
