@@ -2,6 +2,9 @@
 
 A lightweight text transformation service that converts plain text into different styles using LLM capabilities, with comprehensive observability and containerization support.
 
+## Project Structure Image
+![alt text](image.png)
+
 ## Features
 
 - **Text Transformation**: Convert text to pirate, haiku, or formal styles
