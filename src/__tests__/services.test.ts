@@ -25,8 +25,8 @@ const originalEnv = process.env;
 
 // Import services after mocks are set up
 import { getLocalmocResponse, callLLM } from '../services/localmocService';
-import { getOpenAIResponse, openAIResponse } from '../services/openaiService';
-import { getAnthropicResponse, anthropicResponse } from '../services/anthropicService';
+import { openAIResponse } from '../services/openaiService';
+import { anthropicResponse } from '../services/anthropicService';
 
 describe('LLM Services', () => {
   beforeEach(() => {
@@ -79,7 +79,9 @@ describe('LLM Services', () => {
       
       // Need to re-import the service to get the updated environment
       jest.resetModules();
-      const { getOpenAIResponse: getOpenAIResponseFresh } = require('../services/openaiService');
+      
+      // Re-import the service after resetting modules
+      const { getOpenAIResponse: getOpenAIResponseFresh } = await import('../services/openaiService');
       
       await expect(getOpenAIResponseFresh('Hello world', 'formal')).rejects.toThrow(
         'OpenAI service is not configured'
@@ -161,7 +163,9 @@ describe('LLM Services', () => {
       
       // Need to re-import the service to get the updated environment
       jest.resetModules();
-      const { getAnthropicResponse: getAnthropicResponseFresh } = require('../services/anthropicService');
+      
+      // Re-import the service after resetting modules
+      const { getAnthropicResponse: getAnthropicResponseFresh } = await import('../services/anthropicService');
       
       await expect(getAnthropicResponseFresh('Hello world', 'formal')).rejects.toThrow(
         'Anthropic service is not configured'

@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 // Cache metrics interface
 export interface CacheMetrics {
@@ -129,7 +129,7 @@ class MetricsStore {
 export const metricsStore = new MetricsStore();
 
 // Request logging middleware
-export function requestLogger(req: Request, res: Response, next: Function): void {
+export function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const startTime = Date.now();
   const originalSend = res.send;
 

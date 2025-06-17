@@ -2,8 +2,6 @@ import request from 'supertest';
 import app from '../app';
 
 describe('Rewrite API Integration', () => {
-  let server: any;
-
   beforeAll(() => {
     // Don't start the server in integration tests - use the app directly
   });

@@ -94,18 +94,21 @@ async function processJobs() {
       let result: string;
       
       switch (job.llm) {
-        case 'openai':
+        case 'openai': {
           const { getOpenAIResponse } = await import('./openaiService');
           result = await getOpenAIResponse(job.text, job.style);
           break;
-        case 'anthropic':
+        }
+        case 'anthropic': {
           const { getAnthropicResponse } = await import('./anthropicService');
           result = await getAnthropicResponse(job.text, job.style);
           break;
-        default:
+        }
+        default: {
           const { getLocalmocResponse } = await import('./localmocService');
           result = await getLocalmocResponse(job.text, job.style);
           break;
+        }
       }
 
       // Update job with result

@@ -18,8 +18,8 @@ A lightweight text transformation service that converts plain text into differen
 - **Containerization**: Production-ready Docker support with multi-stage builds
 - **Development Tools**: Hot reload, debugging, and development containers
 
-### Create .env file
-Create a `.env` file in the root directory:
+### Create .env file in the root directory
+
 ```bash
 # RewriteForge Service Environment Configuration
 
@@ -39,9 +39,6 @@ LLM_API_KEY=your_llm_api_key_here
 NODE_ENV=development
 ```
 
-**Note**: If no API keys are provided, the service will automatically use the local mock service.
-
-
 ### Docker (Recommended)
 
 ```bash
@@ -59,7 +56,7 @@ docker compose down
 npm install
 ```
 
-#### 3. Start the Service
+### Start the Service
 
 ```bash
 # Development mode (with auto-reload)
@@ -69,22 +66,40 @@ npm run dev
 npm start
 ```
 
-#### 4. Test the Service
+### Test the Service
 
 ```bash
-# Run comprehensive endpoint tests
-npm run test:endpoints
+# Run Async Queue Mode test
+node scripts/test-async-queue.js
+
+# Run streaming test
+- one terminal
+  npm run dev
+- another terminal
+  node scripts/test-streaming.js
+
+# Run E2E test
+node scripts/e2e-test.js
+
+# Run endpoints test
+node scripts/test-endpoints.js
 
 # Run observability tests
-npm run test:observability
+node scripts/test-endpoints-supertest.js
 
 # Run unit tests
 npm test
 ```
 
+### Run Lint
+```
+npm run lint
+```
+
 ## API Endpoints
 
-### Quick check  
+### Quick check
+```
   POST /v1/rewrite - Synchronous text rewriting
   POST /v1/rewrite/submit - Submit async job
   GET /v1/rewrite/result/:jobId - Get job result
@@ -98,6 +113,7 @@ npm test
   POST /metrics/reset - Reset all metrics
 
 ### See streaming UI using http://localhost:3000/public/streaming-test.html
+```
 
 ### POST /v1/rewrite
 Transform text into a new style.
@@ -132,10 +148,13 @@ Transform text into a new style.
 - `localmoc` - Local mock service (default)
 
 ### POST /v1/rewrite/submit
+```
 Asyncronize data.
-### Get /v1/rewrite/result/JObid
+```
+### Get /v1/rewrite/result/jobid
+```
 Get data submitted.
-
+```
 
 ### GET /health
 Health check endpoint for container probes.
@@ -148,18 +167,19 @@ Health check endpoint for container probes.
 ```
 
 ## Observability Endpoints
-
-### GET /metrics/cache
+```
+GET /metrics/cache
 Get cache hit/miss metrics for all services or a specific service.
 
 **Query Parameters:**
-- `service` (optional) - Specific service name (openai, anthropic, localmoc)
+Service(optional) - Specific service name (openai, anthropic, localmoc)
 
-### GET /metrics/requests
+GET /metrics/requests
 Get request statistics and recent logs.
 
-### GET /metrics/overview
+GET /metrics/overview
 Get comprehensive overview of all metrics.
 
-### POST /metrics/reset
+POST /metrics/reset
 Reset all metrics (useful for testing).
+```

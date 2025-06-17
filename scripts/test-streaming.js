@@ -1,4 +1,3 @@
-const EventSource = require('eventsource');
 const fetch = require('node-fetch');
 
 const BASE_URL = 'http://localhost:3000';
@@ -65,7 +64,7 @@ const testCases = [
 ];
 
 async function testStreaming(testCase) {
-  console.log(`\n🧪 Testing: ${testCase.name}`);
+  console.log(`\nTesting: ${testCase.name}`);
   console.log('='.repeat(60));
   
   try {
@@ -82,66 +81,55 @@ async function testStreaming(testCase) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`❌ HTTP Error: ${response.status} - ${errorText}`);
+      console.error(`HTTP Error: ${response.status} - ${errorText}`);
       return;
     }
 
-    console.log(`✅ Stream started successfully`);
-    console.log(`📊 Request data:`, JSON.stringify(testCase.data, null, 2));
-    console.log('\n📡 Receiving stream data...\n');
+    console.log(`Stream started successfully`);
+    console.log(`Request data:`, JSON.stringify(testCase.data, null, 2));
+    console.log('\nReceiving stream data...\n');
 
     let receivedChunks = [];
     let startTime = Date.now();
 
-    // Process the stream
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
+    // Process the stream using response.text() for compatibility
+    const text = await response.text();
+    const lines = text.split('\n');
 
-    while (true) {
-      const { done, value } = await reader.read();
-      
-      if (done) {
-        break;
-      }
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            receivedChunks.push(data);
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = JSON.parse(line.slice(6));
+          receivedChunks.push(data);
+          
+          // Display based on event type
+          switch (data.type) {
+            case 'metadata':
+              console.log(`Metadata: ${JSON.stringify(data.data, null, 2)}`);
+              break;
             
-            // Display based on event type
-            switch (data.type) {
-              case 'metadata':
-                console.log(`📋 Metadata: ${JSON.stringify(data.data, null, 2)}`);
-                break;
-              
-              case 'progress':
-                const progress = data.data.progress;
-                const bar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
-                console.log(`📈 Progress: [${bar}] ${progress}%`);
-                break;
-              
-              case 'content':
-                process.stdout.write(data.data.chunk + ' ');
-                break;
-              
-              case 'complete':
-                console.log(`\n\n✅ Stream completed!`);
-                console.log(`📊 Final result: ${data.data.rewritten}`);
-                console.log(`📈 Total chunks: ${data.data.totalChunks}`);
-                break;
-              
-              case 'error':
-                console.log(`\n❌ Stream error: ${data.data.message}`);
-                break;
-            }
-          } catch (parseError) {
-            console.log(`⚠️  Parse error: ${parseError.message}`);
+            case 'progress':
+              const progress = data.data.progress;
+              const bar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
+              console.log(`Progress: [${bar}] ${progress}%`);
+              break;
+            
+            case 'content':
+              process.stdout.write(data.data.chunk + ' ');
+              break;
+            
+            case 'complete':
+              console.log(`\n\nStream completed!`);
+              console.log(`Final result: ${data.data.rewritten}`);
+              console.log(`Total chunks: ${data.data.totalChunks}`);
+              break;
+            
+            case 'error':
+              console.log(`\nStream error: ${data.data.message}`);
+              break;
           }
+        } catch (parseError) {
+          console.log(`Parse error: ${parseError.message}`);
         }
       }
     }
@@ -149,16 +137,16 @@ async function testStreaming(testCase) {
     const endTime = Date.now();
     const duration = endTime - startTime;
     
-    console.log(`\n⏱️  Stream duration: ${duration}ms`);
-    console.log(`📦 Total events received: ${receivedChunks.length}`);
+    console.log(`\nStream duration: ${duration}ms`);
+    console.log(`Total events received: ${receivedChunks.length}`);
 
   } catch (error) {
-    console.error(`❌ Test failed: ${error.message}`);
+    console.error(`Test failed: ${error.message}`);
   }
 }
 
 async function runAllTests() {
-  console.log('🚀 Starting Streaming Tests');
+  console.log('Starting Streaming Tests');
   console.log('='.repeat(60));
   
   for (const testCase of testCases) {
@@ -168,7 +156,7 @@ async function runAllTests() {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   
-  console.log('\n🎉 All streaming tests completed!');
+  console.log('\nAll streaming tests completed!');
 }
 
 // Run tests if this script is executed directly

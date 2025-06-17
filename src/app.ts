@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction } from 'express';
+import express, { Express, Request, Response } from 'express';
 import rewriteRouter from './routes/rewrite';
 import healthRouter from './routes/health';
 import asyncQueueRouter from './routes/asyncQueue';
@@ -62,7 +62,7 @@ app.use('*', (req: Request, res: Response) => {
 });
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err: Error, req: Request, res: Response) => {
   console.error('Error:', err);
   res.status(500).json({ error: 'Internal server error' });
 });
