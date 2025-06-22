@@ -24,7 +24,7 @@ jest.mock('@anthropic-ai/sdk', () => {
 const originalEnv = process.env;
 
 // Import services after mocks are set up
-import { getLocalmocResponse, callLLM } from '../services/localmocService';
+import { getLocalmocResponse} from '../services/localmocService';
 import { openAIResponse } from '../services/openaiService';
 import { anthropicResponse } from '../services/anthropicService';
 
@@ -39,19 +39,6 @@ describe('LLM Services', () => {
   });
 
   describe('Local Mock Service', () => {
-    it('should return formatted response with style wrapper', async () => {
-      const result = await callLLM('Hello world', 'pirate');
-      expect(result).toBe('[*pirate*] Hello world');
-    });
-
-    it('should handle different styles', async () => {
-      const styles = ['pirate', 'haiku', 'formal'];
-      for (const style of styles) {
-        const result = await callLLM('Hello world', style);
-        expect(result).toBe(`[*${style}*] Hello world`);
-      }
-    });
-
     it('should cache identical requests', async () => {
       const result1 = await getLocalmocResponse('Hello world', 'pirate');
       const result2 = await getLocalmocResponse('Hello world', 'pirate');

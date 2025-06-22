@@ -16,8 +16,8 @@ export interface StreamChunk {
 }
 
 export class StreamingService {
-  private static readonly DEFAULT_DELAY = 50; // 50ms between chunks
-  private static readonly MAX_CHUNK_SIZE = 1024;
+  // private static readonly DEFAULT_DELAY = 50; // 50ms between chunks
+  // private static readonly MAX_CHUNK_SIZE = 1024;
 
   /**
    * Stream rewritten text as Server-Sent Events

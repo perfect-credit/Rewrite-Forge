@@ -47,7 +47,6 @@ export const submitRewriteJob = async (req: Request, res: Response): Promise<voi
 export const getJobResult = async (req: Request, res: Response): Promise<void> => {
   try {
     const { jobId } = req.params;
-
     if (!jobId) {
       res.status(400).json({ error: 'Job ID is required' });
       return;

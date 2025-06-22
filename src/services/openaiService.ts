@@ -36,10 +36,11 @@ export async function openAIResponse(text:string, style: string): Promise<string
   try {
     const prompt:string = `[*${style}*] ${text}`
 
+    // 6/18 closed
     // Ensure prompt is a plain string
-    if (typeof prompt !== 'string') {
-      throw new Error("Invalid prompt: must be a string.");
-    }
+    // if (typeof prompt !== 'string') {
+    //   throw new Error("Invalid prompt: must be a string.");
+    // }
     
     const chatCompletion = await openai!.chat.completions.create({
       model: "gpt-4", // or "gpt-3.5-turbo"
@@ -52,7 +53,13 @@ export async function openAIResponse(text:string, style: string): Promise<string
       max_tokens: 1024,
     });
 
+    // console.log('********************chatCompletion', chatCompletion);
+
     const content = chatCompletion.choices[0]?.message?.content;
+    // console.log("********************message", chatCompletion.choices[0]?.message);
+    // console.log("********************content", content);
+    // console.log("********************content?.trim()", content?.trim());
+
     return content?.trim() ?? "No response from OpenAI.";
   } catch (error: any) {
     console.error("OpenAI error:", error);

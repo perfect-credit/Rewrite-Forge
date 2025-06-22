@@ -168,13 +168,13 @@ Health check endpoint for container probes.
 
 ## Observability Endpoints
 ```
-GET /metrics/cache
+GET /metrics/cache?service=openai(anthropic or localmoc)
 Get cache hit/miss metrics for all services or a specific service.
 
 **Query Parameters:**
 Service(optional) - Specific service name (openai, anthropic, localmoc)
 
-GET /metrics/requests
+GET /metrics/requests?limit=50
 Get request statistics and recent logs.
 
 GET /metrics/overview

@@ -7,10 +7,10 @@ import observabilityRouter from './routes/observability';
 import { requestLogger } from './services/observabilityService';
 // import openaiRoutes from "./routes/openaiRoutes";
 // import anthropicRoutes from './routes/anthropicRoutes';
-import dotenv from "dotenv";
+// import dotenv from "dotenv";
 import path from 'path';
 
-dotenv.config();
+// dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
@@ -54,8 +54,7 @@ app.use('/', healthRouter);
 app.use('/', asyncQueueRouter);
 app.use('/', streamingRouter);
 app.use('/', observabilityRouter);
-// app.use("/", openaiRoutes);
-// app.use("/", anthropicRoutes);
+
 // 404 handler
 app.use('*', (req: Request, res: Response) => {
   res.status(404).json({ error: 'Route not found' });
@@ -79,8 +78,8 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('  POST /v1/rewrite/stream - Streaming text rewriting (SSE)');
     console.log('  POST /v1/rewrite/stream/mock - Mock streaming (SSE)');
     console.log('  GET /health - Health check');
-    console.log('  GET /metrics/cache - Cache hit/miss metrics');
-    console.log('  GET /metrics/requests - Request statistics');
+    console.log('  GET /metrics/cache?service=openai(anthropic or openai) - Cache hit/miss metrics');
+    console.log('  GET /metrics/requests?limit=50 - Request statistics');
     console.log('  GET /metrics/overview - Comprehensive metrics overview');
     console.log('  POST /metrics/reset - Reset all metrics');
     console.log('  GET /public/streaming-test.html - Streaming test UI');

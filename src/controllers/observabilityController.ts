@@ -8,6 +8,8 @@ import { metricsStore } from '../services/observabilityService';
 export const getCacheMetrics = async (req: Request, res: Response): Promise<void> => {
   try {
     const { service } = req.query;
+
+    console.log('service->', req.query);
     
     if (service && typeof service === 'string') {
       const metrics = metricsStore.getCacheMetrics(service);

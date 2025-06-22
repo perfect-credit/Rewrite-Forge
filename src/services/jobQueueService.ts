@@ -47,7 +47,7 @@ export async function submitJob(text: string, style: string, llm: string): Promi
   // Add to processing queue
   jobQueue.push(jobId);
   
-  console.log(`Job submitted: ${jobId} for text: "${text}" with style: ${style}`);
+  console.log(`Job submit  ->  jobId: ${jobId}  text: "${text}" style: ${style}`);
   
   // Start processing if not already running
   if (!isProcessing) {
