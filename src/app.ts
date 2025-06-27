@@ -1,16 +1,8 @@
-import express, { Express, Request, Response } from 'express';
-import rewriteRouter from './routes/rewrite';
-import healthRouter from './routes/health';
-import asyncQueueRouter from './routes/asyncQueue';
-import streamingRouter from './routes/streaming';
-import observabilityRouter from './routes/observability';
-import { requestLogger } from './services/observabilityService';
-// import openaiRoutes from "./routes/openaiRoutes";
-// import anthropicRoutes from './routes/anthropicRoutes';
-// import dotenv from "dotenv";
+import express, { Express} from 'express';
+import appRouter from './routes/index';
+import { requestLogger } from './middlewares/requestLogger';
+import { globalErrorHandler, notFoundHandler } from './middlewares/errorHandler';
 import path from 'path';
-
-// dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
@@ -24,47 +16,14 @@ app.use(requestLogger);
 // Serve static files from public directory
 app.use('/public', express.static(path.join(__dirname, '../public')));
 
-// Root route
-app.get('/', (req: Request, res: Response) => {
-  res.json({ 
-    message: 'RewriteForge Service - Turning plain text into a new style',
-    endpoints: {
-      synchronous: '/v1/rewrite',
-      asynchronous: '/v1/rewrite/submit',
-      streaming: '/v1/rewrite/stream', //	Multiple (OpenAI, Anthropic, Local)
-      streamingMock: '/v1/rewrite/stream/mock', //Local Mock Only
-      health: '/health',
-      queueStats: '/v1/rewrite/queue/stats',
-      metrics: {
-        cache: '/metrics/cache',
-        requests: '/metrics/requests',
-        overview: '/metrics/overview',
-        reset: '/metrics/reset'
-      },
-      ui: {
-        streamingTest: '/public/streaming-test.html'
-      }
-    }
-  });
-});
-
 // Routes
-app.use('/', rewriteRouter);
-app.use('/', healthRouter);
-app.use('/', asyncQueueRouter);
-app.use('/', streamingRouter);
-app.use('/', observabilityRouter);
+app.use('/v1', appRouter);
 
 // 404 handler
-app.use('*', (req: Request, res: Response) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+app.use('*', notFoundHandler);
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(globalErrorHandler);
 
 // Start the server only if not in test environment
 if (process.env.NODE_ENV !== 'test') {
@@ -77,11 +36,11 @@ if (process.env.NODE_ENV !== 'test') {
     console.log('  GET /v1/rewrite/queue/stats - Queue statistics');
     console.log('  POST /v1/rewrite/stream - Streaming text rewriting (SSE)');
     console.log('  POST /v1/rewrite/stream/mock - Mock streaming (SSE)');
-    console.log('  GET /health - Health check');
-    console.log('  GET /metrics/cache?service=openai(anthropic or openai) - Cache hit/miss metrics');
-    console.log('  GET /metrics/requests?limit=50 - Request statistics');
-    console.log('  GET /metrics/overview - Comprehensive metrics overview');
-    console.log('  POST /metrics/reset - Reset all metrics');
+    console.log('  GET /v1/health - Health check');
+    console.log('  GET /v1/metrics/cache?service=openai(anthropic or openai) - Cache hit/miss metrics');
+    console.log('  GET /v1/metrics/requests?limit=50 - Request statistics');
+    console.log('  GET /v1/metrics/overview - Comprehensive metrics overview');
+    console.log('  POST /v1/metrics/reset - Reset all metrics');
     console.log('  GET /public/streaming-test.html - Streaming test UI');
   });
 }

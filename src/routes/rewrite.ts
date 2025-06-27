@@ -3,6 +3,6 @@ import { rewrite } from '../controllers/rewriteController';
 
 const router = Router();
 
-router.post('/v1/rewrite', rewrite);
+router.post('/rewrite', rewrite);
 
 export default router;

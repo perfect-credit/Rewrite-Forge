@@ -32,7 +32,7 @@ const tests = [
   {
     name: 'Health Check Test',
     method: 'GET',
-    path: '/health',
+    path: '/v1/health',
     expectedStatus: 200,
     assertions: (response) => {
       return response.status === 'ok';

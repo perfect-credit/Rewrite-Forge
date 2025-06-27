@@ -1,5 +1,5 @@
 import { config } from '../config';
-import { ObservableCache } from './observabilityService';
+import { ObservableCache } from './cacheService';
 
 // Use the observable cache instead of LRU cache
 const cache = new ObservableCache('localmoc');

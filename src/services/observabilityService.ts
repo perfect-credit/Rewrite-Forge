@@ -1,25 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
-
-// Cache metrics interface
-export interface CacheMetrics {
-  hits: number;
-  misses: number;
-  hitRate: number;
-  totalRequests: number;
-}
-
-// Request log interface
-export interface RequestLog {
-  timestamp: Date;
-  method: string;
-  url: string;
-  statusCode: number;
-  responseTime: number;
-  userAgent?: string;
-  ip?: string;
-  requestBody?: any;
-  error?: string;
-}
+import { CacheMetrics, RequestLog } from '../types/type';
 
 // Global metrics storage
 class MetricsStore {
@@ -128,69 +107,4 @@ class MetricsStore {
 // Singleton instance
 export const metricsStore = new MetricsStore();
 
-// Request logging middleware
-export function requestLogger(req: Request, res: Response, next: NextFunction): void {
-  const startTime = Date.now();
-  const originalSend = res.send;
-
-  // Override res.send to capture response data
-  res.send = function(data: any): Response {
-    const responseTime = Date.now() - startTime;
-    
-    const log: RequestLog = {
-      timestamp: new Date(),
-      method: req.method,
-      url: req.url,
-      statusCode: res.statusCode,
-      responseTime,
-      userAgent: req.get('User-Agent'),
-      ip: req.ip || req.connection.remoteAddress,
-      requestBody: req.method !== 'GET' ? req.body : undefined
-    };
-
-    // Add error information if status code indicates error
-    if (res.statusCode >= 400) {
-      log.error = typeof data === 'string' ? data : JSON.stringify(data);
-    }
-
-    metricsStore.logRequest(log);
-    
-    return originalSend.call(this, data);
-  };
-
-  next();
-}
-
-// Cache wrapper for services
-export class ObservableCache {
-  private cache: Map<string, string> = new Map();
-  private serviceName: string;
-
-  constructor(serviceName: string) {
-    this.serviceName = serviceName;
-  }
-
-  get(key: string): string | undefined {
-    const value = this.cache.get(key);
-    if (value) {
-      metricsStore.recordCacheHit(this.serviceName);
-      console.log(`[${this.serviceName}] Cache HIT for: ${key}`);
-    } else {
-      metricsStore.recordCacheMiss(this.serviceName);
-      console.log(`[${this.serviceName}] Cache MISS for: ${key}`);
-    }
-    return value;
-  }
-
-  set(key: string, value: string): void {
-    this.cache.set(key, value);
-  }
-
-  clear(): void {
-    this.cache.clear();
-  }
-
-  size(): number {
-    return this.cache.size;
-  }
-} 
+// (requestLogger function removed) 

@@ -13,7 +13,7 @@ const tests = [
   {
     name: 'Health Check',
     method: 'GET',
-    path: '/health',
+    path: '/v1/health',
     expectedStatus: 200,
     expectedResponse: { status: 'ok' }
   },

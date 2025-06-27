@@ -1,26 +1,12 @@
 import { Response } from 'express';
 import { getLocalmocResponse } from './localmocService';
-import { getOpenAIResponse } from './openaiService';
-import { getAnthropicResponse } from './anthropicService';
-
-export interface StreamingOptions {
-  granularity: 'word' | 'character' | 'sentence';
-  delay?: number; // Delay between chunks in milliseconds
-  includeMetadata?: boolean;
-}
-
-export interface StreamChunk {
-  type: 'content' | 'metadata' | 'progress' | 'complete' | 'error';
-  data: any;
-  timestamp: number;
-}
+import { streamOpenAIResponse } from './openaiService';
+import { streamAnthropicResponse } from './anthropicService';
+import { StreamingOptions, StreamChunk } from '../types/type';
 
 export class StreamingService {
-  // private static readonly DEFAULT_DELAY = 50; // 50ms between chunks
-  // private static readonly MAX_CHUNK_SIZE = 1024;
-
   /**
-   * Stream rewritten text as Server-Sent Events
+   * Stream rewritten text as Server-Sent Events using TRUE streaming
    */
   static async streamRewrite(
     text: string,
@@ -54,35 +40,42 @@ export class StreamingService {
         });
       }
 
-      // Send progress start
+      // Use TRUE streaming for OpenAI and Anthropic
+      if (llm === 'openai') {
+        await streamOpenAIResponse(text, style, res);
+      } else if (llm === 'anthropic') {
+        await streamAnthropicResponse(text, style, res);
+      } else {
+        // For localmoc, use the old fake streaming approach
+        await this.streamLocalmocResponse(text, style, res, options);
+      }
+
+    } catch (error) {
+      console.error('Streaming error:', error);
       this.sendSSE(res, {
-        type: 'progress',
-        data: { status: 'started', progress: 0 },
+        type: 'error',
+        data: { 
+          message: error instanceof Error ? error.message : 'Streaming failed',
+          original: text
+        },
         timestamp: Date.now()
       });
+      res.end();
+    }
+  }
 
-      // Get the full rewritten text first
-      let rewrittenText: string;
-      try {
-        if (llm === 'openai') {
-          rewrittenText = await getOpenAIResponse(text, style);
-        } else if (llm === 'anthropic') {
-          rewrittenText = await getAnthropicResponse(text, style);
-        } else {
-          rewrittenText = await getLocalmocResponse(text, style);
-        }
-      } catch (error) {
-        this.sendSSE(res, {
-          type: 'error',
-          data: { 
-            message: error instanceof Error ? error.message : 'Failed to rewrite text',
-            original: text
-          },
-          timestamp: Date.now()
-        });
-        res.end();
-        return;
-      }
+  /**
+   * Stream localmoc response (fake streaming for testing)
+   */
+  private static async streamLocalmocResponse(
+    text: string,
+    style: string,
+    res: Response,
+    options: StreamingOptions
+  ): Promise<void> {
+    try {
+      // Get the full rewritten text first (since localmoc doesn't support streaming)
+      const rewrittenText = await getLocalmocResponse(text, style);
 
       // Stream the rewritten text based on granularity
       await this.streamText(rewrittenText, res, options);
@@ -94,19 +87,17 @@ export class StreamingService {
           original: text,
           rewritten: rewrittenText,
           style,
-          llm,
-          totalChunks: this.calculateChunks(rewrittenText, options.granularity)
+          llm: 'localmoc',
         },
         timestamp: Date.now()
       });
 
       res.end();
     } catch (error) {
-      console.error('Streaming error:', error);
       this.sendSSE(res, {
         type: 'error',
         data: { 
-          message: error instanceof Error ? error.message : 'Streaming failed',
+          message: error instanceof Error ? error.message : 'Failed to rewrite text',
           original: text
         },
         timestamp: Date.now()
@@ -124,7 +115,6 @@ export class StreamingService {
     options: StreamingOptions
   ): Promise<void> {
     const chunks = this.splitText(text, options.granularity);
-    const totalChunks = chunks.length;
     let currentChunk = 0;
 
     for (const chunk of chunks) {
@@ -133,28 +123,12 @@ export class StreamingService {
         type: 'content',
         data: {
           chunk,
-          index: currentChunk,
-          total: totalChunks,
-          progress: Math.round((currentChunk / totalChunks) * 100)
+          index: currentChunk,         
         },
         timestamp: Date.now()
       });
 
       currentChunk++;
-
-      // Send progress update every 10% or every 5 chunks
-      if (currentChunk % Math.max(1, Math.floor(totalChunks / 10)) === 0 || currentChunk % 5 === 0) {
-        this.sendSSE(res, {
-          type: 'progress',
-          data: {
-            status: 'processing',
-            progress: Math.round((currentChunk / totalChunks) * 100),
-            currentChunk,
-            totalChunks
-          },
-          timestamp: Date.now()
-        });
-      }
 
       // Add delay between chunks
       if (options.delay && options.delay > 0) {
@@ -179,16 +153,6 @@ export class StreamingService {
     }
   }
 
-  /**
-   * Calculate total number of chunks
-   */
-  private static calculateChunks(text: string, granularity: string): number {
-    return this.splitText(text, granularity).length;
-  }
-
-  /**
-   * Send Server-Sent Event
-   */
   private static sendSSE(res: Response, chunk: StreamChunk): void {
     const eventData = JSON.stringify(chunk);
     res.write(`data: ${eventData}\n\n`);
@@ -202,7 +166,7 @@ export class StreamingService {
   }
 
   /**
-   * Simulate streaming for local mock service with realistic delays
+   * Stream mock rewritten text as Server-Sent Events
    */
   static async streamMockRewrite(
     text: string,
@@ -227,7 +191,7 @@ export class StreamingService {
           data: {
             original: text,
             style,
-            llm: 'localmoc',
+            llm: 'mock',
             granularity: options.granularity,
             timestamp: Date.now()
           },
@@ -235,31 +199,20 @@ export class StreamingService {
         });
       }
 
-      // Send progress start
-      this.sendSSE(res, {
-        type: 'progress',
-        data: { status: 'started', progress: 0 },
-        timestamp: Date.now()
-      });
+      // Generate mock response
+      const mockResponse = `[${style.toUpperCase()}] ${text} - This is a mock response for testing streaming functionality.`;
 
-      // Simulate processing delay
-      await this.delay(500);
-
-      // Get mock response
-      const rewrittenText = await getLocalmocResponse(text, style);
-
-      // Stream the response
-      await this.streamText(rewrittenText, res, options);
+      // Stream the mock response
+      await this.streamText(mockResponse, res, options);
 
       // Send completion event
       this.sendSSE(res, {
         type: 'complete',
         data: {
           original: text,
-          rewritten: rewrittenText,
+          rewritten: mockResponse,
           style,
-          llm: 'localmoc',
-          totalChunks: this.calculateChunks(rewrittenText, options.granularity)
+          llm: 'mock',
         },
         timestamp: Date.now()
       });

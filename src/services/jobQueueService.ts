@@ -1,20 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-
-// Job status types
-export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-// Job interface
-export interface Job {
-  id: string;
-  text: string;
-  style: string;
-  llm: string;
-  status: JobStatus;
-  result?: string;
-  error?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import { Job } from '../types/type';
 
 // In-memory job store (in production, use Redis or database)
 const jobStore = new Map<string, Job>();
@@ -22,8 +7,8 @@ const jobStore = new Map<string, Job>();
 // Job queue for processing
 const jobQueue: string[] = [];
 
-// Process jobs flag
-let isProcessing = false;
+// Persistent worker control
+let workerRunning = false;
 
 /**
  * Submit a new job for text rewriting
@@ -48,11 +33,9 @@ export async function submitJob(text: string, style: string, llm: string): Promi
   jobQueue.push(jobId);
   
   console.log(`Job submit  ->  jobId: ${jobId}  text: "${text}" style: ${style}`);
-  
-  // Start processing if not already running
-  if (!isProcessing) {
-    processJobs();
-  }
+
+  // Start the worker if not already running
+  startWorker();
 
   return jobId;
 }
@@ -65,34 +48,28 @@ export function getJob(jobId: string): Job | null {
 }
 
 /**
- * Process jobs in the queue
+ * Persistent async worker to process jobs
  */
-async function processJobs() {
-  if (isProcessing || jobQueue.length === 0) {
-    return;
-  }
-
-  isProcessing = true;
-  console.log(`Starting job processing. Queue length: ${jobQueue.length}`);
-
-  while (jobQueue.length > 0) {
+async function jobWorker() {
+  workerRunning = true;
+  while (workerRunning) {
+    if (jobQueue.length === 0) {
+      // Wait for new jobs
+      await new Promise(resolve => setTimeout(resolve, 100));
+      continue;
+    }
     const jobId = jobQueue.shift();
     if (!jobId) continue;
-
     const job = jobStore.get(jobId);
     if (!job) continue;
-
     try {
       // Update status to processing
       job.status = 'processing';
       job.updatedAt = new Date();
       jobStore.set(jobId, job);
-
       console.log(`Processing job: ${jobId}`);
-
       // Call the appropriate LLM service
       let result: string;
-      
       switch (job.llm) {
         case 'openai': {
           const { getOpenAIResponse } = await import('./openaiService');
@@ -110,28 +87,30 @@ async function processJobs() {
           break;
         }
       }
-
       // Update job with result
       job.status = 'completed';
       job.result = result;
       job.updatedAt = new Date();
       jobStore.set(jobId, job);
-
       console.log(`Job completed: ${jobId}`);
-
     } catch (error) {
       // Update job with error
       job.status = 'failed';
       job.error = error instanceof Error ? error.message : 'Unknown error';
       job.updatedAt = new Date();
       jobStore.set(jobId, job);
-
       console.error(`Job failed: ${jobId}`, error);
     }
   }
+}
 
-  isProcessing = false;
-  console.log('Job processing completed');
+/**
+ * Start the persistent worker if not already running
+ */
+function startWorker() {
+  if (!workerRunning) {
+    jobWorker();
+  }
 }
 
 /**
@@ -160,7 +139,6 @@ export function getQueueStats() {
   return {
     totalJobs: jobStore.size,
     pendingJobs: jobQueue.length,
-    isProcessing,
     completedJobs: Array.from(jobStore.values()).filter(job => job.status === 'completed').length,
     failedJobs: Array.from(jobStore.values()).filter(job => job.status === 'failed').length
   };

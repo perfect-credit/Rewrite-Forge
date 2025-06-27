@@ -4,9 +4,9 @@ import { streamRewrite, streamMockRewrite } from '../controllers/streamingContro
 const router = Router();
 
 // Stream rewrite with any LLM (OpenAI, Anthropic, or Local Mock)
-router.post('/v1/rewrite/stream', streamRewrite);
+router.post('/rewrite/stream', streamRewrite);
 
 // Stream rewrite with local mock only (for testing)
-router.post('/v1/rewrite/stream/mock', streamMockRewrite);
+router.post('/rewrite/stream/mock', streamMockRewrite);
 
 export default router; 

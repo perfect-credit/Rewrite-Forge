@@ -81,9 +81,6 @@ node scripts/test-async-queue.js
 # Run E2E test
 node scripts/e2e-test.js
 
-# Run endpoints test
-node scripts/test-endpoints.js
-
 # Run observability tests
 node scripts/test-endpoints-supertest.js
 

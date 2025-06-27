@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { StreamingService, StreamingOptions } from '../services/streamingService';
+import { StreamingService } from '../services/streamingService';
+import { StreamingOptions } from '../types/type';
 import { validateRequest } from '../utils/validate';
 
 export const streamRewrite = async (req: Request, res: Response): Promise<void> => {
